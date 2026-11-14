@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AwsS3ResponseDto {
 
-    public String message;
+    public Long id;
     public String urlFile;
 
 }

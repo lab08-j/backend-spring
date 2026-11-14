@@ -14,4 +14,8 @@ public class ImageUpload {
     @NotBlank
     private String urlFile;
 
+    public ImageUpload (String urlFile){
+        this.urlFile = urlFile;
+    }
+
 }
