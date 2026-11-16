@@ -2,12 +2,14 @@ package br.com.juniando.blog.features.uploads.services;
 
 import br.com.juniando.blog.features.uploads.models.ImageUpload;
 import br.com.juniando.blog.features.uploads.repositories.ImageUploadRepository;
+import br.com.juniando.blog.features.uploads.validations.FileValidation;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -32,13 +34,15 @@ public class S3Service {
         this.imageUploadRepository = imageUploadRepository;
     }
 
-    public List<ImageUpload> uploadFiles (List<MultipartFile> files) throws IOException {
+    public List<ImageUpload> uploadFiles (List<MultipartFile> files) throws IOException, IllegalArgumentException, MultipartException {
 
         if (files.isEmpty()) {
-            return new ArrayList<>();
+            throw new MultipartException("No file uploaded");
         }
 
-        //List<String> linksUploaded = new ArrayList<>();
+        validateSizeFile(files);
+        validateSizeRequest(files);
+
         List<ImageUpload> imageUploadList = new ArrayList<>();
         for (MultipartFile fileTemp : files){
             imageUploadList.add(uploadFile(fileTemp));
@@ -63,7 +67,12 @@ public class S3Service {
     }
     */
 
-    public ImageUpload uploadFile(MultipartFile file) throws IOException {
+    public ImageUpload uploadFile(MultipartFile file) throws IOException, IllegalArgumentException {
+
+        if (!FileValidation.isValidFileType(file)) {
+            throw new IllegalArgumentException("File format invalid.");
+        }
+
         String key = UUID.randomUUID()+"-"+file.getOriginalFilename();
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -107,5 +116,25 @@ public class S3Service {
         }
         */
         return imageUploadRepository.save(new ImageUpload(imageUrl));
+    }
+
+    public boolean validateSizeFile (List<MultipartFile> fileList) throws IllegalArgumentException {
+        //2mb size limit per file
+        long sizeLimit = 2 * 1024 * 1024;
+        for (MultipartFile fileTemp : fileList) {
+            if (fileTemp.getSize() > sizeLimit){
+                throw new IllegalArgumentException("Upload Failed, the file size exceeds the limit. Only 2 MB per image.");
+            }
+        }
+        return false;
+    }
+
+    public boolean validateSizeRequest (List<MultipartFile> fileList) throws IllegalArgumentException {
+        //5 files limit per request
+        int filesLimit = 5;
+        if (fileList.size() > filesLimit) {
+            throw new IllegalArgumentException("Upload Failed, only 5 files per request.");
+        }
+        return false;
     }
 }

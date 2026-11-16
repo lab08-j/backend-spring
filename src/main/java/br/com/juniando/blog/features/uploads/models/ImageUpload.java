@@ -14,6 +14,17 @@ public class ImageUpload {
     @NotBlank
     private String urlFile;
 
+    /*
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+
+    public ImageUpload (String urlFile, Post post) {
+        this.urlFile = urlFile;
+        this.post = post;
+    }
+    */
+
     public ImageUpload (String urlFile){
         this.urlFile = urlFile;
     }

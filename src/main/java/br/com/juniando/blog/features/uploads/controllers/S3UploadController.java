@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -24,28 +25,13 @@ public class S3UploadController {
     private S3Service s3Service;
 
     @PostMapping
-    public ResponseEntity<?> upload (@RequestParam("file") List<MultipartFile> fileList){
+    public ResponseEntity<?> upload (@RequestParam(value = "file", required = false) List<MultipartFile> fileList){
 
-        if (fileList.isEmpty()){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Upload Failed, no files.");
-        }
-
-        //2MB limit
-        long sizeLimit = 2 * 1024 * 1024;
-        for (MultipartFile fileTemp : fileList) {
-            if (fileTemp.getSize() > sizeLimit){
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Upload Failed, the file size exceeds the limit. Only 2 MB per image.");
-            }
-        }
-
-        //5 file limit
-        int filesLimit = 5;
-        if (fileList.size() > filesLimit) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Upload Failed, only 5 files per request.");
+        if (fileList == null || fileList.isEmpty() || fileList.stream().allMatch(MultipartFile::isEmpty)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No file uploaded.");
         }
 
         try {
-
             List<AwsS3ResponseDto> fileResponseList = new ArrayList<AwsS3ResponseDto>();
             List<ImageUpload> imageUploadList = s3Service.uploadFiles(fileList);
             for (ImageUpload imageUpload : imageUploadList) {
@@ -55,7 +41,11 @@ public class S3UploadController {
             return ResponseEntity.status(HttpStatus.OK).body(fileResponseList);
 
         } catch (IOException e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload Failed, no file url created.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        } catch (IllegalArgumentException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (MultipartException e) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(e.getMessage());
         }
 
     }
