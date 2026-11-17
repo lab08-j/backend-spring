@@ -6,12 +6,14 @@ import lombok.Data;
 
 @Entity
 @Data
+@Table(name = "upload_image")
 public class ImageUpload {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @NotBlank
+    @Column(name = "url_file")
     private String urlFile;
 
     /*
